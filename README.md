@@ -2,13 +2,13 @@
 
 Repositório dedicado ao projeto da disciplina de Infraestrutura de Comunicações
 
-# 1ª entrega
+# 🌸 1ª entrega
 
 Os arquivos dessa entrega estão na pasta 'entrega1'
 
 ## como rodar
 
-Para isso, é importante saber que devemos rodar o código do cliente enquanto o código do servidor estiver rodando. O
+Para isso, é importante saber que devemos rodar o código do cliente enquanto o código do servidor estiver rodando.
 
 ### para o servidor
 
