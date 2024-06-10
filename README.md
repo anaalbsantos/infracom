@@ -1,6 +1,12 @@
 # infracom
 
 Repositório dedicado ao projeto da disciplina de Infraestrutura de Comunicações
+Equipe
+- Ana Laura Albuquerque Santos
+- Ana Paula Sá Barreto Paiva da Cunha
+- David Oscar da Silva
+- Ícaro Augusto Melo de Souza
+- Luan Thiers de Oliveira Pires
 
 # 🌸 1ª entrega
 
