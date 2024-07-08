@@ -1,5 +1,6 @@
 import random
 import socket
+
 def make_pkt(seq_number, data):
     return str({'seq_number': seq_number, 'data': data}).encode()
 
