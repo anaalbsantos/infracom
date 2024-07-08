@@ -19,32 +19,35 @@ print('The server is ready to receive')
 seq_number = 0
 
 # Definindo o retorno dos pacotes
-
 def send_file(file_path1):
+    global seq_number
 
     file_encoded = file_path1.encode() # passando o arquivo para bytes
-    server_socket.sendto(file_encoded,client_addr)
+    print('Sending file name to the client...')
+    seq_number = udt_send(server_socket, seq_number, file_encoded, client_addr) # Enviando o nome do arquivo para o cliente
+    print('Done!')
     
-    with open(file_path1, 'rb') as file : # Enviando como parametro o caminho do arquivo e definindo como leitura e arquivo binario
-
+    
+    with open(file_path1, 'rb') as file :
+        print('Sending file to the client...')
         for i in range (0, package_number):
             file_data = file.read(buffer_size)
-            server_socket.sendto(file_data,client_addr)
+            seq_number = udt_send(server_socket, seq_number, file_data, client_addr)
             print(f"Package {i+1}/{package_number} sent")
+    print('File sent to the client!')
 
 try:
     while 1:
 
-        # Como primeiro enviamos o path do nosso arquivo, recebemos ele com recvfrom
-        # encoded_name , addr = server_socket.recvfrom(buffer_size)
+        # Como primeiro enviamos o path do nosso arquivo, recebemos ele
         encoded_name, seq_number = rdt_rcv(server_socket, seq_number)
+        print('Received file name from the client!')
 
         # Passando o valor em bytes para string novamente
         name, tipo = (encoded_name.decode().split('\\')[-1]).split('.') # Separamos o nome do arquivo e o seu tipo
         file_path = name + '.' + tipo
 
         #Recebendo o numero de pacotes 
-        # data, client_addr = server_socket.recvfrom(buffer_size)
         data, seq_number = rdt_rcv(server_socket, seq_number)
         package_number = int(data.decode())
 
@@ -67,5 +70,3 @@ try:
 except KeyboardInterrupt:
     server_socket.close()
     print('Server closed')
-
-    

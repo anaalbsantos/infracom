@@ -1,4 +1,5 @@
 import random
+import socket
 
 def make_pkt(seq_number, data):
     return str({'seq_number': seq_number, 'data': data}).encode()
@@ -17,7 +18,7 @@ def udt_send(skt, seq, data, addr):
 
         try:
             msg, addr = skt.recvfrom(1024)
-        except skt.timeout:
+        except socket.timeout:
             print('Timeout! Resending packet...')
             # skt.sendto(pkt, addr)
             skt.settimeout(1)
@@ -32,8 +33,6 @@ def define_ack(pkt, msg):
     str_msg = eval(msg.decode())
     str_pkt = eval(pkt.decode())
 
-    # print(str_msg['seq_number'], str_pkt['seq_number'])
-
     if str_msg['seq_number'] != str_pkt['seq_number']: # se o número de seq não for o esperado, não recebeu ACK correto
         return False
     
@@ -46,6 +45,7 @@ def rdt_rcv(skt, seq):
     # print('Received packet!')
 
     if str_pkt['seq_number'] != seq:
+        print('Received wrong packet!')
         pkt = make_pkt(1 - seq, b'ACK')
         skt.sendto(pkt, addr)
     else:
@@ -57,7 +57,7 @@ def rdt_rcv(skt, seq):
 
 def errorRandom():
     error = random.random()
-    if(error <= 0.3):
+    if(error < 0.1):
         return False
     return True
     
