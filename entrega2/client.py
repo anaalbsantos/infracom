@@ -1,7 +1,7 @@
 import socket as skt    # Importando as bibliotecas
 import os
 import math
-import rdt3
+from rdt3 import *
 
 # Setando as informações do socket
 buffer_size = 1024
@@ -50,21 +50,22 @@ with open(file_path, 'rb') as file:
     file_name  = file_path_list[-1] # Pegamos o ultimo elemento da lista (nome do arquivo)
 
     # Enviando o nome do arquivo codificado em bytes para o servidor
-    rdt3.udt_send(client_socket, file_name.encode(), server_addr)
+    seq_number = udt_send(client_socket, seq_number, file_name.encode(), server_addr)
     
     # Definindo numero de pacotes
     package_number = math.ceil(os.path.getsize(file_path) / buffer_size)
     backup = file.read()
+    print('package size: ', os.path.getsize(file_path) )
 
     # Enviando numero de pacotes para o servidor
-    rdt3.udt_send(client_socket, str(package_number).encode(), server_addr)
+    seq_number = udt_send(client_socket, seq_number, str(package_number).encode(), server_addr)
     
     # Lista com os pacotes a serem enviados
     chunks = [backup[i:i+buffer_size] for i in range(0, len(backup), buffer_size)]
     
+    print('Sending file to the server...')
     for i in range(0, package_number):
-        pkt = rdt3.make_pkt(seq_number, chunks[i])
-        rdt3.udt_send(client_socket, pkt, server_addr)
+        seq_number = udt_send(client_socket, seq_number, chunks[i], server_addr)    
         
 
     print('file sent to the server!')
