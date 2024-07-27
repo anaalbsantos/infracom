@@ -1,8 +1,5 @@
 import socket as skt    #importando as bibliotecas
-import os
-from time import sleep
-import math
-from rdt3 import *
+import random
 
 #Setando as informações do socket
 ip = 'localhost' # IP do sevidor
@@ -14,23 +11,67 @@ print('server is ready to receive')
 
 # lista de clientes conectados
 users = {}
+new_msg = ""
 
-# Numero de sequencia para rdt3.0
-seq_number = 0
-
-
-
-try:
+def receive():
+    global new_msg
     while True:
-        cmd, seq_number, client_addr = rdt_rcv(server_socket, seq_number)
-        cmd = cmd.decode()
+        server_socket.settimeout(5)
+        
+        try:
+            msg, address = server_socket.recvfrom(1024)
+            msg = msg.decode()
 
-        if cmd.startswith("login"):
-            user = cmd.split(' ')[1]
-            users[user] = client_addr
-            udt_send(server_socket, seq_number, f'você está online!', client_addr)
-            continue
+            if msg == 'ACK':
+                server_socket.sendto(b'ACK', server_addr)
+                break
+            
+            if msg != new_msg:
+                new_msg = msg
+            else:
+                return None, None
+            
+            return msg, address
+        except skt.timeout:
+            pass
+
+        
+def send(cmd, socket, addr):
+
+    while True:
+        socket.settimeout(5)
+
+        if random.random() > 0.1:
+            socket.sendto(cmd.encode(), addr)
+            try:
+                msg, address = socket.recvfrom(1024)
+
+                if msg.decode() == 'ACK':
+                    break
+            except skt.timeout:
+                socket.sendto(cmd.encode(), addr)
+                pass
     
-except KeyboardInterrupt:
-    server_socket.close()
-    exit()
+def handle_msg(msg, client_addr):
+    global users
+
+    if msg.startswith('login'):
+        name = msg.split(' ')[1]
+        users[name] = client_addr
+        print(f'{name} connected')
+        response = f'você está online!'
+    else:
+        response = 'comando inválido'
+    
+    send(response, server_socket, client_addr)
+
+
+while True:
+    msg, client_addr = receive()
+    
+    if msg is None or client_addr is None:
+        continue
+    else:
+        handle_msg(msg, client_addr)
+
+        

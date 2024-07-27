@@ -1,36 +1,60 @@
 import socket as skt    # Importando as bibliotecas
-import os
-import math
-from rdt3 import *
+import random
 import threading
 
 # Setando as informações do socket
 server_name = 'localhost'
 server_port = 12000
-client_port = 12001
+client_port = 0 # define 0 para que o SO escolha uma porta disponível
 server_addr = (server_name, server_port)  # Definindo a tupla que contem o IP e a Porta do servidor
 client_addr = (server_name, client_port)  # Definindo a tupla que contem o IP e a Porta do cliente
 
 client_socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)  # Criando socket do cliente para UDP
 client_socket.bind(client_addr)
 
-seq_number = 0
+new_msg = ""
 
-# Definindo o recebimento dos pacotes
-def receive_msg():
-    global seq_number
+def send(cmd):
 
     while True:
-        data, seq_number, addr = rdt_rcv(client_socket, seq_number)
-        if data != b'ACK':
-            print(data)
+        client_socket.settimeout(5)
 
-threading.Thread(target=receive_msg).start()
+        if random.random() > 0.1:
+            client_socket.sendto(cmd.encode(), server_addr)
+            try:
+                msg, address = client_socket.recvfrom(1024)
 
-try:
+                if msg.decode() == 'ACK':
+                    break
+            except skt.timeout:
+                client_socket.sendto(cmd.encode(), server_addr)
+                pass
+        # else:
+        #     if server_addr != address:
+        #         continue
+        #     ack = define_ack(cmd, msg)
+
+def receive():
+    global new_msg
     while True:
-        cmd = input()                                                                                # Recebe o comando do usuário
-        seq_number = udt_send(client_socket, seq_number, cmd.encode(), server_addr)                  # Envia o comando para o servidor
-except KeyboardInterrupt:
-    client_socket.close()
-    exit()
+        client_socket.settimeout(5)
+        
+        try:
+            msg, address = client_socket.recvfrom(1024)
+            msg = msg.decode()
+
+            if msg == 'ACK':
+                client_socket.sendto(b'ACK', server_addr)
+                break
+                
+            if msg != new_msg and msg is not None:
+                new_msg = msg
+                print(msg)
+        except skt.timeout:
+            pass
+
+threading.Thread(target=receive).start()
+
+while True:
+    cmd = input()
+    send(cmd)
