@@ -13,44 +13,80 @@ client_socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)  # Criando socket do cli
 client_socket.bind(client_addr)
 
 new_msg = ""
+seq_number = 0
+  
 
-def send(cmd):
+def make_pkt(seq_number, data):
+    return str({'seq_number': seq_number, 'data': data}).encode()
+
+def send(cmd, socket, addr):
+    global seq_number
     while True:
-        client_socket.settimeout(5)
+        socket.settimeout(5)
+        pkt = make_pkt(seq_number, cmd)
 
         if random.random() > 0.1:
-            client_socket.sendto(cmd.encode(), server_addr)
+            socket.sendto(pkt, addr)
             print('sending')
-        try:
-            msg, address = client_socket.recvfrom(1024)
 
-            if msg == b'ACK':
+        try:
+            msg, address = socket.recvfrom(1024)
+            msg = eval(msg.decode())
+
+            while msg is None:      
+                msg, address = socket.recvfrom(1024)
+                msg = eval(msg.decode())  
+
+            if msg['data'] == b'ACK' and msg['seq_number'] == seq_number:
+                seq_number = 1 - seq_number
                 print('ACK received')
                 break
         except skt.timeout:
-            client_socket.sendto(cmd.encode(), server_addr)
-            print('resending')
+            # socket.sendto(pkt, addr)
+            print('timeout')
             pass
 
+def handle_login(cmd, socket, addr):
+    send(cmd, socket, addr)
+    msg = receive(socket)
 
-def receive():
+def receive(socket):
+    global seq_number
     while True:
-        client_socket.settimeout(5)
+        socket.settimeout(5)
         
         try:
-            msg, address = client_socket.recvfrom(1024)
-            # msg = msg.decode()
-
-            if msg != b'ACK':
-                print('msg received: ', msg.decode())
-                client_socket.sendto(b'ACK', address)
-                break
+            msg, address = socket.recvfrom(1024)
+            msg = eval(msg.decode())
+            if msg is not None:
+                
+                if msg['seq_number'] == seq_number and msg['data'] != b'ACK':
+                    print('msg received: ', msg['data'], 'and seq_number: ', msg['seq_number'])
+                    pkt = make_pkt(seq_number, b'ACK')
+                    socket.sendto(pkt, address)
+                    seq_number = 1 - seq_number
+                    return msg['data']
                 
         except skt.timeout:
             continue
 
-threading.Thread(target=receive).start()
+def rcv_msg(socket):
+    while True:
+        msg = receive(socket)
+        if msg is not None:
+            print(msg)
 
-while True:
-    cmd = input()
-    send(cmd)
+# threading.Thread(target=rcv_msg, args=(client_socket,)).start()
+
+try:
+    while True:
+        # # aqui ele deve receber o comando do usuário e enviar para o servidor em loop, mas receber as mensagens do servidor ao mesmo tempo        
+        if client_socket.recv is not None:
+            cmd = input()
+            send(cmd, client_socket, server_addr)
+            receive(client_socket)
+        else:
+            rcv_msg(client_socket)
+except KeyboardInterrupt:
+    print('Closing client')
+    client_socket.close()
