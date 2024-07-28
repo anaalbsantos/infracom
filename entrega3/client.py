@@ -15,43 +15,39 @@ client_socket.bind(client_addr)
 new_msg = ""
 
 def send(cmd):
-
     while True:
         client_socket.settimeout(5)
 
         if random.random() > 0.1:
             client_socket.sendto(cmd.encode(), server_addr)
-            try:
-                msg, address = client_socket.recvfrom(1024)
+            print('sending')
+        try:
+            msg, address = client_socket.recvfrom(1024)
 
-                if msg.decode() == 'ACK':
-                    break
-            except skt.timeout:
-                client_socket.sendto(cmd.encode(), server_addr)
-                pass
-        # else:
-        #     if server_addr != address:
-        #         continue
-        #     ack = define_ack(cmd, msg)
+            if msg == b'ACK':
+                print('ACK received')
+                break
+        except skt.timeout:
+            client_socket.sendto(cmd.encode(), server_addr)
+            print('resending')
+            pass
+
 
 def receive():
-    global new_msg
     while True:
         client_socket.settimeout(5)
         
         try:
             msg, address = client_socket.recvfrom(1024)
-            msg = msg.decode()
+            # msg = msg.decode()
 
-            if msg == 'ACK':
-                client_socket.sendto(b'ACK', server_addr)
+            if msg != b'ACK':
+                print('msg received: ', msg.decode())
+                client_socket.sendto(b'ACK', address)
                 break
                 
-            if msg != new_msg and msg is not None:
-                new_msg = msg
-                print(msg)
         except skt.timeout:
-            pass
+            continue
 
 threading.Thread(target=receive).start()
 

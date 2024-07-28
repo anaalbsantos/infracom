@@ -14,7 +14,7 @@ users = {}
 new_msg = ""
 
 def receive():
-    global new_msg
+    # global new_msg
     while True:
         server_socket.settimeout(5)
         
@@ -22,18 +22,13 @@ def receive():
             msg, address = server_socket.recvfrom(1024)
             msg = msg.decode()
 
-            if msg == 'ACK':
-                server_socket.sendto(b'ACK', server_addr)
-                break
-            
-            if msg != new_msg:
-                new_msg = msg
-            else:
-                return None, None
-            
-            return msg, address
+            if msg:
+                print('msg received: ', msg)
+                server_socket.sendto(b'ACK', address)
+                return msg, address
+                
         except skt.timeout:
-            pass
+            continue
 
         
 def send(cmd, socket, addr):
@@ -43,23 +38,34 @@ def send(cmd, socket, addr):
 
         if random.random() > 0.1:
             socket.sendto(cmd.encode(), addr)
-            try:
-                msg, address = socket.recvfrom(1024)
+            print('sending')
+        try:
+            msg, address = socket.recvfrom(1024)
 
-                if msg.decode() == 'ACK':
-                    break
-            except skt.timeout:
-                socket.sendto(cmd.encode(), addr)
-                pass
+            if address != addr:
+                continue
+            if msg == b'ACK':
+                print('ACK received')
+                break
+        except skt.timeout:
+            socket.sendto(cmd.encode(), addr)
+            pass
     
 def handle_msg(msg, client_addr):
     global users
 
     if msg.startswith('login'):
-        name = msg.split(' ')[1]
-        users[name] = client_addr
-        print(f'{name} connected')
-        response = f'você está online!'
+        if client_addr in users.values():
+            response = 'você já está logado'
+        else:
+            name = msg.split(' ')[1]
+            users[name] = client_addr
+            print(f'{name} connected')
+            response = f'você está online!'
+    elif msg.startswith('list'):
+        response = 'Usuários online:\n'
+        for user in users:
+            response += f'{user}\n'
     else:
         response = 'comando inválido'
     
@@ -69,9 +75,7 @@ def handle_msg(msg, client_addr):
 while True:
     msg, client_addr = receive()
     
-    if msg is None or client_addr is None:
-        continue
-    else:
+    if msg:
         handle_msg(msg, client_addr)
 
         
