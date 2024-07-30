@@ -13,17 +13,16 @@ print('server is ready to receive')
 
 users = {} # lista de clientes conectados
 acmds = {} # lista de acomodações
-
-seq_number = 0
+list_seq = {} # lista com números de sequência para cada usuário
 
 def make_pkt(seq_number, data):
     return str({'seq_number': seq_number, 'data': data}).encode()
 
 def send(cmd, socket, addr):
-    global seq_number
     while True:
-        socket.settimeout(5)
-        pkt = make_pkt(seq_number, cmd)
+        socket.settimeout(3)
+        seq = list_seq[addr]
+        pkt = make_pkt(seq, cmd)
 
         if random.random() > 0.1:
             socket.sendto(pkt, addr)
@@ -36,33 +35,45 @@ def send(cmd, socket, addr):
                 msg, address = socket.recvfrom(1024)
                 msg = eval(msg.decode())
 
-            if msg['data'] == b'ACK' and msg['seq_number'] == seq_number:
-                seq_number = 1 - seq_number
+            if msg['data'] == b'ACK' and msg['seq_number'] == seq:
+                list_seq.update({addr: 1 - seq})
                 print('ACK received')
                 break
         except skt.timeout:
             # socket.sendto(pkt, addr)
-            print('resending')
+            print('timeout')
             pass
 
 
 def receive(socket):
-    global seq_number
     while True:
-        socket.settimeout(5)
+        socket.settimeout(3)
         
         try:
+            seq = ""
             msg, address = socket.recvfrom(4096)
             msg = eval(msg.decode())
+
             if msg is None:
                 continue
 
-            if msg['seq_number'] == seq_number and msg['data'] != b'ACK':
+            if address not in list_seq:
+                list_seq.update({address: 0})
+          
+            seq = list_seq.get(address)
+
+
+            if msg['seq_number'] == seq and msg['data'] != b'ACK':
                 print('msg received: ', msg['data'], 'and seq_number: ', msg['seq_number'])
-                pkt = make_pkt(seq_number, b'ACK')
+                pkt = make_pkt(seq, b'ACK')
                 socket.sendto(pkt, address)
-                seq_number = 1 - seq_number
+                list_seq.update({address: 1 - seq})
                 return msg['data'], address
+            elif msg['seq_number'] != seq:
+                print('quero seq ', seq, 'mas recebi ', msg['seq_number'])
+                pkt = make_pkt(msg['seq_number'], b'ACK')
+                socket.sendto(pkt, address)
+                return "", address
                 
         except skt.timeout:
             continue
@@ -129,7 +140,7 @@ try:
     while True:
         msg, client_addr = receive(server_socket)
         
-        if msg:
+        if msg and msg != "":
            handle_msg(msg, client_addr)
 except KeyboardInterrupt:
     server_socket.close()
