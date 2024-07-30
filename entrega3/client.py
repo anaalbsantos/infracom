@@ -66,6 +66,8 @@ def receive(socket):
                     socket.sendto(pkt, address)
                     seq_number = 1 - seq_number
                     return msg['data']
+            else: 
+                return
                 
         except skt.timeout:
             continue
@@ -76,7 +78,7 @@ def rcv_msg(socket):
         if msg is not None:
             print(msg)
 
-# threading.Thread(target=rcv_msg, args=(client_socket,)).start()
+#threading.Thread(target=rcv_msg, args=(client_socket,), daemon=True).start()
 
 try:
     while True:
