@@ -18,7 +18,7 @@ Para isso, é importante saber que devemos rodar o código do cliente enquanto o
 
 🌸 2ª entrega: Mesma interação da primeira entrega, mas implementando o protocolo rdt 3.0
 
-🌸 3ª entrega: Ainda não realizada
+🌸 3ª entrega: Sistema de acomodações com o uso do rdt 3.0
 
 ### para o servidor
 
